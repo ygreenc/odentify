@@ -42,24 +42,5 @@ class MovieSearcher(unittest.TestCase):
         self.assertGreaterEqual(len(results), 1)
 
 
-class MovieFormatter(unittest.TestCase):
-
-    def testMissingTagName(self):
-        """If format string contains missing tags in the dict..."""
-        with self.assertRaises(KeyError):
-            odentify.format('{nope}', {'Title': 'Test'})
-
-    def testSimple(self):
-        """Simple test to see if string is formatted"""
-        formatted = odentify.format(
-            '{Title}({Year})',
-            {
-                'Title': 'Interstellar',
-                'Year': '2014'
-            }
-        )
-        self.assertEqual(formatted, 'Interstellar(2014)')
-
-
 if __name__ == '__main__':
     unittest.main()
