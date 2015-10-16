@@ -6,6 +6,14 @@ import requests
 API_URL = 'http://omdbapi.com'
 
 
+class Formatter(object):
+
+    def __init__(self, format=''):
+        self.format = format
+
+pass_formatter = click.make_pass_decorator(Formatter)
+
+
 def search_movie(movie_name):
     response = requests.get(
         API_URL,
@@ -35,14 +43,16 @@ def fetch_movie(fetching_id):
 
 
 @click.group()
-@click.option('--debug/--no-debug', default=False)
-def cli(debug):
-    pass
+@click.option('--as-csv', default=False)
+@click.pass_context
+def cli(ctx, as_csv):
+    ctx.obj = Formatter()
 
 
 @cli.command()
 @click.argument('movie', required=True)
-def search(movie):
+@pass_formatter
+def search(formatter, movie):
     movies = search_movie(movie)
     for movie in movies:
         click.echo(movie['Title'])
@@ -53,7 +63,9 @@ def search(movie):
 
 @cli.command()
 @click.argument('movie_id', required=True)
-def fetch(movie_id):
+@pass_formatter
+def fetch(formatter, movie_id):
+    print(formatter)
     movie = fetch_movie(movie_id)
     for key, value in movie.items():
         click.echo('%s %s' % (key, value))
