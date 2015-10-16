@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
-import odentify
 import unittest
-
+from odentify import odentify
 
 class MovieFetcher(unittest.TestCase):
 
