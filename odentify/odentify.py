@@ -7,9 +7,45 @@ API_URL = 'http://omdbapi.com'
 
 
 class Formatter(object):
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
 
-    def __init__(self, format=''):
-        self.format = format
+        self.available_types = {
+            'list': self.as_list,
+            'csv': self.as_csv,
+            'format': self.as_string
+        }
+
+        if not self.type:
+            self.type = 'list'
+
+        if self.separator:
+            self.type = 'csv'
+
+        if self.format:
+            self.type = 'format'
+
+        if self.type not in self.available_types:
+            raise KeyError('Format text %s not found' % type)
+
+    def mprint(self, movie):
+        return self.available_types[self.type](movie)
+
+    def as_list(self, movie):
+        for key, value in movie.items():
+            click.echo('%s %s' % (key, value))
+
+    def as_csv(self, movie):
+        if not self.separator:
+            click.echo(';'.join(movie.values()))
+
+        click.echo(self.separator.join(movie.values()))
+
+    def as_string(self, movie):
+        if not self.format:
+            click.echo(movie)
+        click.echo(self.format.format(**movie))
+
 
 pass_formatter = click.make_pass_decorator(Formatter)
 
@@ -21,7 +57,8 @@ def search_movie(movie_name):
             's': movie_name,
             'r': 'json',
             't': 'movie'
-        }
+        },
+        timeout=3.0
     )
     return response.json()['Search']
 
@@ -34,7 +71,7 @@ def fetch_movie(fetching_id):
         # Search with title
         params = {'t': fetching_id}
 
-    response = requests.get(API_URL, params=params).json()
+    response = requests.get(API_URL, params=params, timeout=3.0).json()
 
     if response['Response'] == 'False':
         return None
@@ -43,10 +80,16 @@ def fetch_movie(fetching_id):
 
 
 @click.group()
-@click.option('--as-csv', default=False)
+@click.option('--type', default='list', show_default=True)
+@click.option('--format', default=None)
+@click.option('--separator')
 @click.pass_context
-def cli(ctx, as_csv):
-    ctx.obj = Formatter()
+def cli(ctx, **kwargs):
+    try:
+        ctx.obj = Formatter(**kwargs)
+    except KeyError as e:
+        print(e)
+        exit(1)
 
 
 @cli.command()
@@ -56,8 +99,7 @@ def search(formatter, movie):
     movies = search_movie(movie)
     for movie in movies:
         click.echo(movie['Title'])
-        for key, value in movie.items():
-            click.echo('%s %s' % (key, value))
+        formatter.mprint(movie)
         click.echo()
 
 
@@ -65,11 +107,14 @@ def search(formatter, movie):
 @click.argument('movie_id', required=True)
 @pass_formatter
 def fetch(formatter, movie_id):
-    print(formatter)
     movie = fetch_movie(movie_id)
-    for key, value in movie.items():
-        click.echo('%s %s' % (key, value))
+    formatter.mprint(movie)
 
 
 if __name__ == '__main__':
-    cli()
+    try:
+        cli()
+    except requests.exceptions.ReadTimeout as e:
+        print("Request timed-out. The service might be unavailable or you've been banned")
+    except KeyError as k:
+        print("Cannot find key {}".format(k))
