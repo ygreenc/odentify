@@ -43,7 +43,7 @@ class Formatter(object):
 
     def as_string(self, movie):
         if not self.format:
-            click.echo(movie)
+            click.echo(movie['Title'])
         click.echo(self.format.format(**movie))
 
 
@@ -98,7 +98,6 @@ def cli(ctx, **kwargs):
 def search(formatter, movie):
     movies = search_movie(movie)
     for movie in movies:
-        click.echo(movie['Title'])
         formatter.mprint(movie)
         click.echo()
 
@@ -116,5 +115,7 @@ if __name__ == '__main__':
         cli()
     except requests.exceptions.ReadTimeout as e:
         print("Request timed-out. The service might be unavailable or you've been banned")
+        exit(1)
     except KeyError as k:
         print("Cannot find key {}".format(k))
+        exit(1)
