@@ -8,8 +8,7 @@ API_URL = 'http://omdbapi.com'
 
 class Formatter(object):
 
-    """Format a movie dict according to user preferences
-    """
+    """Format a movie dict according to user preferences."""
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
 
@@ -32,27 +31,23 @@ class Formatter(object):
             raise KeyError('Format text %s not found' % type)
 
     def mprint(self, movie):
-        """Print out the movie according to user preferences
-        """
+        """Print out the movie according to user preferences."""
         return self.available_types[self.type](movie)
 
     def as_list(self, movie):
-        """Output the movie as a list of attributes
-        """
+        """Output the movie as a list of attributes."""
         for key, value in movie.items():
             click.echo('%s %s' % (key, value))
 
     def as_csv(self, movie):
-        """Output the movie csv
-        """
+        """Output the movie csv."""
         if not self.separator:
             click.echo(';'.join(movie.values()))
 
         click.echo(self.separator.join(movie.values()))
 
     def as_string(self, movie):
-        """Output movie according to format passed by user
-        """
+        """Output movie according to format passed by user."""
         if not self.format:
             click.echo(movie['Title'])
         click.echo(self.format.format(**movie))
@@ -62,8 +57,7 @@ pass_formatter = click.make_pass_decorator(Formatter)
 
 
 def search_movie(movie_name):
-    """Search for string on OMDB
-    """
+    """Search for string on OMDB."""
     response = requests.get(
         API_URL,
         params={
@@ -77,8 +71,7 @@ def search_movie(movie_name):
 
 
 def fetch_movie(fetching_id):
-    """Fetch movie attributes on OMDB
-    """
+    """Fetch movie attributes on OMDB."""
     if fetching_id.startswith('tt'):
         # IMDB id has been passed for fetching
         params = {'i': fetching_id}
