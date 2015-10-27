@@ -3,57 +3,23 @@
 import click
 import requests
 
+import functools
+
 API_URL = 'http://omdbapi.com'
 
 
-class Formatter(object):
-
-    """Format a movie dict according to user preferences."""
-    def __init__(self, **kwargs):
-        self.__dict__.update(kwargs)
-
-        self.available_types = {
-            'list': self.as_list,
-            'csv': self.as_csv,
-            'format': self.as_string
-        }
-
-        if not self.type:
-            self.type = 'list'
-
-        if self.separator:
-            self.type = 'csv'
-
-        if self.format:
-            self.type = 'format'
-
-        if self.type not in self.available_types:
-            raise KeyError('Format text %s not found' % type)
-
-    def mprint(self, movie):
-        """Print out the movie according to user preferences."""
-        return self.available_types[self.type](movie)
-
-    def as_list(self, movie):
-        """Output the movie as a list of attributes."""
-        for key, value in movie.items():
-            click.echo('%s %s' % (key, value))
-
-    def as_csv(self, movie):
-        """Output the movie csv."""
-        if not self.separator:
-            click.echo(';'.join(movie.values()))
-
-        click.echo(self.separator.join(movie.values()))
-
-    def as_string(self, movie):
-        """Output movie according to format passed by user."""
-        if not self.format:
-            click.echo(movie['Title'])
-        click.echo(self.format.format(**movie))
+def as_list(movie):
+    """Output the movie as a list of attributes."""
+    for key, value in sorted(movie.items()):
+        click.echo('%s %s' % (key, value))
 
 
-pass_formatter = click.make_pass_decorator(Formatter)
+def as_string(movie, out_format="{Title}{Year}"):
+    """Output movie according to format passed by user."""
+    click.echo(out_format.format(**movie))
+
+
+selected_formatting = as_list
 
 
 def search_movie(movie_name):
@@ -88,42 +54,34 @@ def fetch_movie(fetching_id):
 
 
 @click.group()
-@click.option('--type', default='list', show_default=True)
 @click.option('--format', default=None)
-@click.option('--separator')
 @click.pass_context
-def cli(ctx, **kwargs):
-    try:
-        ctx.obj = Formatter(**kwargs)
-    except KeyError as e:
-        print(e)
-        exit(1)
+def cli(ctx, format=None):
+    global selected_formatting
+    if format:
+        selected_formatting = functools.partial(as_string, out_format=format)
 
 
 @cli.command()
 @click.argument('movie', required=True)
-@pass_formatter
-def search(formatter, movie):
+def search(movie):
+    selected_formatting
     movies = search_movie(movie)
     for movie in movies:
-        formatter.mprint(movie)
+        selected_formatting(movie)
         click.echo()
 
 
 @cli.command()
 @click.argument('movie_id', required=True)
-@pass_formatter
-def fetch(formatter, movie_id):
+def fetch(movie_id):
     movie = fetch_movie(movie_id)
-    formatter.mprint(movie)
+    selected_formatting(movie)
 
 
 if __name__ == '__main__':
     try:
         cli()
     except requests.exceptions.ReadTimeout as e:
-        print("Request timed-out. The service might be unavailable or you've been banned")
-        exit(1)
-    except KeyError as k:
-        print("Cannot find key {}".format(k))
+        print("Request timed-out. Might be down or you could be banned!")
         exit(1)
